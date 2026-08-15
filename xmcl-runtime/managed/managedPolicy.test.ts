@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areManagedInstanceEditFieldsAllowed, isManagedInstanceMutationAllowed, isManagedRouteAllowed } from './managedPolicy'
+import { areManagedInstanceEditFieldsAllowed, isManagedInstanceMutationAllowed, isManagedResolvedVersionChangeAllowed, isManagedRouteAllowed } from './managedPolicy'
 
 describe('managed launcher policy', () => {
   it('allows resource-pack and shader-pack mutations', () => {
@@ -26,5 +26,14 @@ describe('managed launcher policy', () => {
     expect(areManagedInstanceEditFieldsAllowed(['instancePath', 'name'])).toBe(false)
     expect(areManagedInstanceEditFieldsAllowed(['instancePath', 'runtime'])).toBe(false)
     expect(areManagedInstanceEditFieldsAllowed(['instancePath', 'upstream'])).toBe(false)
+  })
+
+  it('allows only the installer commit for the pinned NeoForge runtime', () => {
+    const runtime = { minecraft: '1.21.1', neoForged: '21.1.236', forge: '', fabricLoader: '', quiltLoader: '', optifine: '', labyMod: '' }
+    expect(isManagedResolvedVersionChangeAllowed('', 'neoforge-21.1.236', runtime)).toBe(true)
+    expect(isManagedResolvedVersionChangeAllowed('', 'forge-21.1.236', runtime)).toBe(false)
+    expect(isManagedResolvedVersionChangeAllowed('', 'neoforge-21.1.237', runtime)).toBe(false)
+    expect(isManagedResolvedVersionChangeAllowed('', 'neoforge-21.1.236', { ...runtime, minecraft: '1.21.2' })).toBe(false)
+    expect(isManagedResolvedVersionChangeAllowed('custom', 'neoforge-21.1.236', runtime)).toBe(false)
   })
 })

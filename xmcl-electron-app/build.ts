@@ -94,8 +94,8 @@ async function buildElectron(config: Configuration, dir: boolean) {
     config,
     ...(dir ? {
       dir: true,
+      win: ['dir'],
       x64: true,
-      arm64: process.platform !== 'win32'
     } : {}),
   } as Parameters<typeof electronBuilder>[0])
 
@@ -158,7 +158,7 @@ async function start() {
       }
 
       const suffix = context.arch === 3 ? '-arm64' : context.arch === 0 ? '-ia32' : ''
-      const platformName = (process.platform === 'win32' ? 'win' : process.platform === 'darwin' ? 'mac' : 'linux') + suffix
+      const platformName = (context.packager.platform === Platform.WINDOWS ? 'win32' : context.packager.platform === Platform.MAC ? 'mac' : 'linux') + suffix
 
       const dest = `build/output/app-${version}-${platformName}.asar`
       const gzipDest = dest + '.gz'

@@ -92,6 +92,11 @@ const getEnv = () => {
   }
 }
 
+function normalizeLauncherProtocol(url: string): string {
+  const prefix = 'ttss-launcher://'
+  return url.startsWith(prefix) ? `xmcl://${url.slice(prefix.length)}` : url
+}
+
 function isLatin1(s: string) {
   for (let i = 0; i < s.length; i++) {
     if (s.charCodeAt(i) > 0xff) return false
@@ -327,11 +332,11 @@ export default class ElectronLauncherApp extends LauncherApp {
 
     app.on('open-url', (event, url) => {
       event.preventDefault()
-      this.protocol.handle({ url })
+      this.protocol.handle({ url: normalizeLauncherProtocol(url) })
     }).on('second-instance', (e, argv) => {
       const last = argv[argv.length - 1]
-      if (last.startsWith('xmcl://')) {
-        this.protocol.handle({ url: last })
+      if (last.startsWith('ttss-launcher://')) {
+        this.protocol.handle({ url: normalizeLauncherProtocol(last) })
       } else {
         this.emit('second-instance', argv)
       }

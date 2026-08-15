@@ -411,6 +411,10 @@ installForge:
   downloadInstaller: 下载 Forge 安装器
   name: 安装 Forge
   postProcessing: 处理 Minecraft Jar 文件
+installNeoForge:
+  downloadInstaller: 下载 NeoForge 安装器
+  name: 安装 NeoForge
+  postProcessing: 处理 Minecraft Jar 文件
 installInstance:
   file: 更新/安装实例文件 {file}
   link: 复制或链接 {count} 个文件

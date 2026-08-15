@@ -18,6 +18,19 @@ export interface LocalizedTask {
   subtitle: string
 }
 
+export function getInstallTaskTranslationKeys(
+  type: 'installForge' | 'installNeoForge',
+  substate: 'forge.installer' | 'libraries' | 'postprocess',
+): { name: string; subtitle: string } {
+  const prefix = type === 'installNeoForge' ? 'installNeoForge' : 'installForge'
+  const subtitle = substate === 'libraries'
+    ? 'installLibraries.name'
+    : substate === 'forge.installer'
+      ? `${prefix}.downloadInstaller`
+      : `${prefix}.postProcessing`
+  return { name: `${prefix}.name`, subtitle }
+}
+
 /**
  * Provides a function that returns localized title and subtitle for a task
  * Uses explicit type matching with literal keys for type safety
@@ -28,30 +41,14 @@ export function useLocalizedTaskFunc() {
   const localizeTask = (task: Tasks): LocalizedTask => {
     // Install Forge Task
     if (task.type === 'installForge') {
-      const title = t('installForge.name') + ' ' + task.version
-      let subtitle = ''
-      if (task.substate.type === 'forge.installer') {
-        subtitle = t('installForge.downloadInstaller')
-      } else if (task.substate.type === 'libraries') {
-        subtitle = t('installLibraries.name')
-      } else if (task.substate.type === 'postprocess') {
-        subtitle = t('installForge.postProcessing')
-      }
-      return { title, subtitle }
+      const keys = getInstallTaskTranslationKeys(task.type, task.substate.type)
+      return { title: t(keys.name) + ' ' + task.version, subtitle: t(keys.subtitle) }
     }
 
     // Install NeoForge Task
     if (task.type === 'installNeoForge') {
-      const title = t('installForge.name') + ' ' + task.version
-      let subtitle = ''
-      if (task.substate.type === 'forge.installer') {
-        subtitle = t('installForge.downloadInstaller')
-      } else if (task.substate.type === 'libraries') {
-        subtitle = t('installLibraries.name')
-      } else if (task.substate.type === 'postprocess') {
-        subtitle = t('installForge.postProcessing')
-      }
-      return { title, subtitle }
+      const keys = getInstallTaskTranslationKeys(task.type, task.substate.type)
+      return { title: t(keys.name) + ' ' + task.version, subtitle: t(keys.subtitle) }
     }
 
     // Install Assets Task

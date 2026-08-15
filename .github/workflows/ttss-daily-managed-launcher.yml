@@ -84,10 +84,10 @@ jobs:
           SEED_SIGNING_KEY: ${{ secrets.SEED_SIGNING_KEY }}
         run: |
           version=$(jq -r '.xmcl.version' current-release.json)
-          archive="ttss-xmcl-$version-linux-x64.tar.gz"
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/previous-xmcl.tar.gz" "$DOWNLOAD_ORIGIN/xmcl/$archive"
-          tar -xOf "$RUNNER_TEMP/previous-xmcl.tar.gz" './resources/ttss-client-seed/ttss-client-seed.zip' > "$RUNNER_TEMP/base-seed.zip"
-          tar -xOf "$RUNNER_TEMP/previous-xmcl.tar.gz" './resources/ttss-client-seed/ttss-client-seed.public.pem' > "$RUNNER_TEMP/previous-public.pem"
+          archive="ttss-xmcl-$version-windows-x64.zip"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/previous-xmcl.zip" "$DOWNLOAD_ORIGIN/xmcl/$archive"
+          unzip -p "$RUNNER_TEMP/previous-xmcl.zip" 'resources/ttss-client-seed/ttss-client-seed.zip' > "$RUNNER_TEMP/base-seed.zip"
+          unzip -p "$RUNNER_TEMP/previous-xmcl.zip" 'resources/ttss-client-seed/ttss-client-seed.public.pem' > "$RUNNER_TEMP/previous-public.pem"
           install -m 0600 /dev/null "$RUNNER_TEMP/seed-key.pem"
           printf '%s\n' "$SEED_SIGNING_KEY" > "$RUNNER_TEMP/seed-key.pem"
           openssl pkey -in "$RUNNER_TEMP/seed-key.pem" -pubout -out "$RUNNER_TEMP/seed-public.pem"
@@ -119,7 +119,10 @@ jobs:
   xmcl:
     needs: prepare
     if: needs.prepare.outputs.changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
@@ -140,8 +143,8 @@ jobs:
           NODE_ENV: production
       - uses: actions/upload-artifact@v6
         with:
-          name: xmcl-linux-x64
-          path: xmcl-electron-app/build/output/linux-unpacked/
+          name: xmcl-windows-x64
+          path: xmcl-electron-app/build/output/win-unpacked/
           retention-days: 1
           compression-level: 1
 
@@ -177,7 +180,7 @@ jobs:
           ./gradlew :FCL:testFordebugUnitTest :FCL:assembleRelease -Darch=all --no-daemon
           apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           "$apksigner" verify --verbose --print-certs FCL/build/outputs/apk/release/*-all.apk | tee "$RUNNER_TEMP/apksigner.txt"
-          grep -Fi 'Signer #1 certificate SHA-256 digest: dc93cf9557cf990a52c0451a96de4342154b54cb9d593140d3a3234aed81bc40' "$RUNNER_TEMP/apksigner.txt"
+          grep -Fi 'V2 Signer: certificate SHA-256 digest: dc93cf9557cf990a52c0451a96de4342154b54cb9d593140d3a3234aed81bc40' "$RUNNER_TEMP/apksigner.txt"
       - uses: actions/upload-artifact@v6
         with:
           name: fcl-release
@@ -205,8 +208,8 @@ jobs:
           path: export
       - uses: actions/download-artifact@v7
         with:
-          name: xmcl-linux-x64
-          path: xmcl-electron-app/build/output/linux-unpacked
+          name: xmcl-windows-x64
+          path: xmcl-electron-app/build/output/win-unpacked
       - uses: actions/download-artifact@v7
         with:
           name: fcl-release

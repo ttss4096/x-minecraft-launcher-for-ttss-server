@@ -502,6 +502,10 @@ installForge:
   downloadInstaller: Download Installer
   name: Install Forge
   postProcessing: Post Processing
+installNeoForge:
+  downloadInstaller: Download NeoForge Installer
+  name: Install NeoForge
+  postProcessing: Post Processing
 installInstance:
   file: Update Instance File {file}
   link: Copy or Link {count} Files

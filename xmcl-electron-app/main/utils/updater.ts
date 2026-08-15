@@ -258,7 +258,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
       name: a.name,
     })) as Array<{ url: string; name: string }>
     const platformString =
-      app.platform.os === 'windows' ? 'win' : app.platform.os === 'osx' ? 'mac' : 'linux'
+      app.platform.os === 'windows' ? 'win32' : app.platform.os === 'osx' ? 'mac' : 'linux'
     const version = result.tag_name.substring(1)
     const updateInfo: ReleaseInfo = {
       name: result.tag_name,

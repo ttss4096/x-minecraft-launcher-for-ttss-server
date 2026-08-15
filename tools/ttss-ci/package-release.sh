@@ -5,7 +5,7 @@ required=(XMCL_REPO FCL_REPO SEED_DIR EXPORT_ROOT OUTPUT_DIR POLICY_FILE)
 for name in "${required[@]}"; do
   [[ -n ${!name:-} ]] || { printf 'missing required environment variable: %s\n' "$name" >&2; exit 64; }
 done
-xmcl_dir="$XMCL_REPO/xmcl-electron-app/build/output/linux-unpacked"
+xmcl_dir="$XMCL_REPO/xmcl-electron-app/build/output/win-unpacked"
 xmcl_asar="$xmcl_dir/resources/app.asar"
 fcl_apk=$(find "$FCL_REPO/FCL/build/outputs/apk/release" -maxdepth 1 -type f -name '*-all.apk' -print -quit)
 for path in "$xmcl_asar" "$fcl_apk" "$SEED_DIR/ttss-client-seed.zip" "$EXPORT_ROOT/host/automodpack-content.json" "$EXPORT_ROOT/config/hailwall.json" "$POLICY_FILE"; do
@@ -36,10 +36,10 @@ published_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 staging="$OUTPUT_DIR.staging"
 rm -rf "$staging"
 mkdir -p "$staging/xmcl" "$staging/fcl" "$staging/seed"
-install -m 0644 "$xmcl_asar" "$staging/xmcl/app-$xmcl_version-linux.asar"
-gzip -9n -c "$xmcl_asar" > "$staging/xmcl/app-$xmcl_version-linux.asar.gz"
-sha256sum "$xmcl_asar" | cut -d' ' -f1 > "$staging/xmcl/app-$xmcl_version-linux.asar.sha256"
-tar --sort=name --mtime='@315532800' --owner=0 --group=0 --numeric-owner -C "$xmcl_dir" -cf - . | gzip -1n > "$staging/xmcl/ttss-xmcl-$xmcl_version-linux-x64.tar.gz"
+install -m 0644 "$xmcl_asar" "$staging/xmcl/app-$xmcl_version-win32.asar"
+gzip -9n -c "$xmcl_asar" > "$staging/xmcl/app-$xmcl_version-win32.asar.gz"
+sha256sum "$xmcl_asar" | cut -d' ' -f1 > "$staging/xmcl/app-$xmcl_version-win32.asar.sha256"
+(cd "$xmcl_dir" && zip -q -0 -X -r "$staging/xmcl/ttss-xmcl-$xmcl_version-windows-x64.zip" .)
 
 apk_name="FCL-release-$fcl_version-all.apk"
 install -m 0644 "$fcl_apk" "$staging/fcl/$apk_name"
@@ -51,10 +51,10 @@ for name in ttss-client-seed.manifest.json ttss-client-seed.manifest.sig ttss-cl
 done
 (cd "$staging/seed" && sha256sum ttss-client-seed.manifest.json ttss-client-seed.manifest.sig ttss-client-seed.public.pem > SHA256SUMS)
 
-jq -n --arg version "$xmcl_version" --arg published "$published_at" '{tag_name: ("v" + $version), body: "清汤闲水服务器受管启动器正式版", published_at: $published, assets: [{name: ("app-" + $version + "-linux.asar"), browser_download_url: ("https://launcher.ttss4096.com/releases/latest/xmcl/app-" + $version + "-linux.asar")}]}' > "$staging/xmcl/release.json"
+jq -n --arg version "$xmcl_version" --arg published "$published_at" '{tag_name: ("v" + $version), body: "清汤闲水服务器受管启动器正式版", published_at: $published, assets: [{name: ("app-" + $version + "-win32.asar"), browser_download_url: ("https://launcher.ttss4096.com/releases/latest/xmcl/app-" + $version + "-win32.asar")}]}' > "$staging/xmcl/release.json"
 jq -n --argjson code "$fcl_code" --arg version "$fcl_version" --arg date "$(date -u +'%Y.%m.%d')" '[{type: "release", versionCode: $code, versionName: $version, date: $date, description: [{lang: "zh_CN", text: "清汤闲水服务器受管启动器正式版"}, {lang: "en", text: "TTSS managed launcher release"}], url: ("https://launcher.ttss4096.com/releases/latest/fcl/FCL-release-" + $version + "-all.apk"), netdiskUrl: "https://launcher.ttss4096.com/"}]' > "$staging/fcl/version_map.json"
 
-jq -n --arg releaseId "$release_id" --arg publishedAt "$published_at" --arg seedReleaseId "$seed_release" --arg seedDigest "$seed_digest" --arg seedPayloadSha256 "$(jq -r '.payload.sha256' "$SEED_DIR/ttss-client-seed.manifest.json")" --arg seedPayloadSource "xmcl/ttss-xmcl-$xmcl_version-linux-x64.tar.gz#./resources/ttss-client-seed/ttss-client-seed.zip" --arg xmclVersion "$xmcl_version" --arg xmclHead "$xmcl_head" --arg xmclTree "$xmcl_tree" --arg fclVersion "$fcl_version" --argjson fclVersionCode "$fcl_code" --arg fclHead "$fcl_head" --arg fclTree "$fcl_tree" --arg hostManifestSha256 "$host_digest" --arg hailwallSha256 "$hailwall_digest" --arg policySha256 "$policy_digest" '{schemaVersion: 1, releaseId: $releaseId, publishedAt: $publishedAt, seed: {releaseId: $seedReleaseId, contentDigest: $seedDigest, payloadSha256: $seedPayloadSha256, payloadSource: $seedPayloadSource}, xmcl: {version: $xmclVersion, gitHead: $xmclHead, sourceTreeSha256: $xmclTree}, fcl: {version: $fclVersion, versionCode: $fclVersionCode, gitHead: $fclHead, sourceTreeSha256: $fclTree}, inputs: {hostManifestSha256: $hostManifestSha256, hailwallSha256: $hailwallSha256, policySha256: $policySha256}}' > "$staging/release-manifest.json"
+jq -n --arg releaseId "$release_id" --arg publishedAt "$published_at" --arg seedReleaseId "$seed_release" --arg seedDigest "$seed_digest" --arg seedPayloadSha256 "$(jq -r '.payload.sha256' "$SEED_DIR/ttss-client-seed.manifest.json")" --arg seedPayloadSource "xmcl/ttss-xmcl-$xmcl_version-windows-x64.zip#resources/ttss-client-seed/ttss-client-seed.zip" --arg xmclVersion "$xmcl_version" --arg xmclHead "$xmcl_head" --arg xmclTree "$xmcl_tree" --arg fclVersion "$fcl_version" --argjson fclVersionCode "$fcl_code" --arg fclHead "$fcl_head" --arg fclTree "$fcl_tree" --arg hostManifestSha256 "$host_digest" --arg hailwallSha256 "$hailwall_digest" --arg policySha256 "$policy_digest" '{schemaVersion: 1, releaseId: $releaseId, publishedAt: $publishedAt, seed: {releaseId: $seedReleaseId, contentDigest: $seedDigest, payloadSha256: $seedPayloadSha256, payloadSource: $seedPayloadSource}, xmcl: {version: $xmclVersion, gitHead: $xmclHead, sourceTreeSha256: $xmclTree}, fcl: {version: $fclVersion, versionCode: $fclVersionCode, gitHead: $fclHead, sourceTreeSha256: $fclTree}, inputs: {hostManifestSha256: $hostManifestSha256, hailwallSha256: $hailwallSha256, policySha256: $policySha256}}' > "$staging/release-manifest.json"
 
 files_tsv=$(mktemp)
 sha_sums=$(mktemp)

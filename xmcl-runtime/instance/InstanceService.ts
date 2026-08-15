@@ -36,7 +36,7 @@ import { requireObject, requireString } from '../util/object'
 import { getTracker } from '~/util/taskHelper'
 import { setTimeout } from 'timers/promises'
 import { isDeepStrictEqual } from 'util'
-import { areManagedInstanceEditFieldsAllowed, assertManagedLauncherOperationAllowed } from '../managed/managedPolicy'
+import { areManagedInstanceEditFieldsAllowed, assertManagedLauncherOperationAllowed, isManagedResolvedVersionChangeAllowed } from '../managed/managedPolicy'
 
 const INSTANCES_FOLDER = 'instances'
 
@@ -654,7 +654,12 @@ export class InstanceService extends StatefulService<InstanceState> implements I
 
     const currentFields = state as unknown as Record<string, unknown>
     const changedProtectedFields = Object.entries(options)
-      .filter(([key, value]) => !areManagedInstanceEditFieldsAllowed([key]) && !isDeepStrictEqual(value === null ? undefined : value, currentFields[key]))
+      .filter(([key, value]) => {
+        if (areManagedInstanceEditFieldsAllowed([key])) return false
+        if (isDeepStrictEqual(value === null ? undefined : value, currentFields[key])) return false
+        if (key === 'version' && isManagedResolvedVersionChangeAllowed(state.version, value as string | undefined, state.runtime)) return false
+        return true
+      })
       .map(([key]) => key)
     if (changedProtectedFields.length > 0) {
       assertManagedLauncherOperationAllowed(`instance.edit-structure:${changedProtectedFields.join(',')}`)

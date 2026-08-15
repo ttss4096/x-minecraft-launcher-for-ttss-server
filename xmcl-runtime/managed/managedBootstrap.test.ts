@@ -5,6 +5,8 @@ import { join } from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ZipFile } from 'yazl'
 import { prepareManagedLauncher } from './managedBootstrap'
+import { LAUNCHER_NAME } from '../constant'
+import { config as electronBuilderConfig } from '../../xmcl-electron-app/build/electron-builder.config'
 
 const roots: string[] = []
 
@@ -52,6 +54,15 @@ async function createSeed(seedDirectory: string): Promise<void> {
 }
 
 describe('prepareManagedLauncher', () => {
+  it('uses launcher data isolated from the upstream XMCL installation', () => {
+    expect(LAUNCHER_NAME).toBe('ttss-launcher')
+    expect(electronBuilderConfig.appId).toBe('com.ttss4096.launcher')
+    expect(electronBuilderConfig.protocols).toEqual({
+      name: '清汤闲水服务器启动器',
+      schemes: ['ttss-launcher'],
+    })
+  })
+
   it('installs the only managed instance and pins the launcher root', async () => {
     const root = await mkdtemp(join(tmpdir(), 'ttss-managed-bootstrap-'))
     roots.push(root)

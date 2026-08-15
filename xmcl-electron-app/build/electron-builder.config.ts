@@ -6,7 +6,7 @@ dotenv()
 
 export const config = {
   productName: '清汤闲水服务器启动器',
-  appId: 'xmcl',
+  appId: 'com.ttss4096.launcher',
   directories: {
     output: 'build/output',
     buildResources: 'build',
@@ -14,7 +14,7 @@ export const config = {
   },
   protocols: {
     name: '清汤闲水服务器启动器',
-    schemes: ['xmcl'],
+    schemes: ['ttss-launcher'],
   },
   // assign publish for auto-updater
   // set this to your own repo!
@@ -90,12 +90,8 @@ export const config = {
     target: [
       {
         target: 'zip',
-        arch: [
-          'x64',
-          'ia32',
-        ],
+        arch: ['x64'],
       },
-      'appx',
     ],
   },
   linux: {

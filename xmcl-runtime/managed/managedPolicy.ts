@@ -61,6 +61,32 @@ export function areManagedInstanceEditFieldsAllowed(fields: readonly string[]): 
   return fields.every(field => editableInstanceFields.has(field))
 }
 
+interface ManagedRuntimeVersions {
+  minecraft?: string
+  forge?: string
+  fabricLoader?: string
+  quiltLoader?: string
+  optifine?: string
+  neoForged?: string
+  labyMod?: string
+}
+
+export function isManagedResolvedVersionChangeAllowed(
+  current: string | undefined,
+  next: string | undefined,
+  runtime: ManagedRuntimeVersions,
+): boolean {
+  return !current
+    && next === 'neoforge-21.1.236'
+    && runtime.minecraft === '1.21.1'
+    && runtime.neoForged === '21.1.236'
+    && !runtime.forge
+    && !runtime.fabricLoader
+    && !runtime.quiltLoader
+    && !runtime.optifine
+    && !runtime.labyMod
+}
+
 export function assertManagedLauncherOperationAllowed(operation: string): void {
   throw new ManagedLauncherPolicyError(operation)
 }

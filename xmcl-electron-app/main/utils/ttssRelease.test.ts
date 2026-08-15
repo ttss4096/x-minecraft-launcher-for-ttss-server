@@ -7,8 +7,8 @@ const validRelease = {
   published_at: '2026-08-15T14:00:00Z',
   assets: [
     {
-      name: 'app-0.66.2-linux.asar',
-      browser_download_url: 'https://launcher.ttss4096.com/releases/latest/xmcl/app-0.66.2-linux.asar',
+      name: 'app-0.66.2-win32.asar',
+      browser_download_url: 'https://launcher.ttss4096.com/releases/latest/xmcl/app-0.66.2-win32.asar',
     },
   ],
 }
