@@ -40,8 +40,6 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { useDialog } from '@/composables/dialog'
-import { useGlobalDrop } from '@/composables/dropHandler'
 import { kInstance } from '@/composables/instance'
 import { kInstanceLaunch } from '@/composables/instanceLaunch'
 import { useGamepadAction } from '@/composables/gamepad'
@@ -82,23 +80,6 @@ onMounted(() => {
   compact.value = false
 })
 
-const { show } = useDialog('HomeDropModpackDialog')
-
-useGlobalDrop({
-  onDrop: async (e) => {
-    const files = e.files
-    const file = files?.[0]
-    if (file) {
-      const ext = file.name.split('.').pop()
-      const filePath = windowController.getPathForFile(file)
-      if ((ext === 'zip' || ext === 'mrpack') && filePath) {
-        show(filePath)
-        return
-      }
-    }
-  },
-})
-
 const scrollElement = ref(null as HTMLElement | null)
 provide('scrollElement', scrollElement)
 
@@ -124,10 +105,6 @@ useTutorial(
       {
         element: '#my-stuff-button',
         popover: { title: t('userAccount.add'), description: t('tutorial.userAccountDescription') },
-      },
-      {
-        element: '#create-instance-button',
-        popover: { title: t('instances.add'), description: t('tutorial.instanceAddDescription') },
       },
       {
         element: '#launch-button',

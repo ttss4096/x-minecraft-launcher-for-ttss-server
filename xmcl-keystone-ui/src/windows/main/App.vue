@@ -23,13 +23,8 @@
     </div>
     <AppContextMenu />
     <AppNotifier />
-    <AppOmniDialog :agent-enabled="developerMode" />
     <AppFeedbackDialog />
     <AppTaskDialog />
-    <AppAddInstanceDialog />
-    <AppModpackUpdateDialog />
-    <AppShareInstanceDialog />
-    <AppInstanceDeleteDialog />
     <AppGameExitDialog />
     <AppLaunchBlockedDialog />
     <AppUnauthenticatedWarningDialog />
@@ -47,7 +42,6 @@
     <AppModrinthVersionPublishDialog />
     <AppSideBarGroupSettingDialog :default-color="defaultColor" />
     <ModGroupSelectDialog />
-    <AppGamepadPrompt />
   </v-app>
   <v-app v-else class="h-full max-h-screen overflow-hidden" :class="{ 'dark': isDark }">
     <AppSystemBar no-user no-task />
@@ -56,7 +50,6 @@
     </div>
     <UserProfileDialog :value="userProfileDialogShown" @input="userProfileDialogShown = $event" />
     <AppFeedbackDialog />
-    <AppGamepadPrompt />
   </v-app>
 </template>
 
@@ -67,7 +60,6 @@ import AppSharedTooltip from '@/components/AppSharedTooltip.vue'
 import { useAuthProfileImportNotification } from '@/composables/authProfileImport'
 import { useAgentChatHotkey } from '@/composables/agentChat'
 import { kAgent, installAgentDevLauncher, useAgent } from '@/composables/agent'
-import { useCommandPaletteHotkey } from '@/composables/commandPalette'
 import { useDefaultErrorHandler } from '@/composables/errorHandler'
 import { kInstance } from '@/composables/instance'
 import { kLaunchButton, useLaunchButton } from '@/composables/launchButton'
@@ -81,15 +73,11 @@ import { kInFocusMode } from '@/composables/uiLayout'
 import { kSidebarSettings, useInjectSidebarSettings, useSidebarSettings } from '@/composables/sidebarSettings'
 import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
-import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
-import AppModpackUpdateDialog from '@/views/AppModpackUpdateDialog.vue'
 import AppBackground from '@/views/AppBackground.vue'
-import AppOmniDialog from '@/views/AppOmniDialog.vue'
 import AppContextMenu from '@/views/AppContextMenu.vue'
 import AppFeedbackDialog from '@/views/AppFeedbackDialog.vue'
 import AppGameExitDialog from '@/views/AppGameExitDialog.vue'
 import AppInstallSkipDialog from '@/views/AppInstallSkipDialog.vue'
-import AppInstanceDeleteDialog from '@/views/AppInstanceDeleteDialog.vue'
 import AppLaunchBlockedDialog from '@/views/AppLaunchBlockedDialog.vue'
 import AppMultiplayerLoginDialog from '@/views/AppMultiplayerLoginDialog.vue'
 import AppUnauthenticatedWarningDialog from '@/views/AppUnauthenticatedWarningDialog.vue'
@@ -102,7 +90,6 @@ import AppModrinthProjectCreateDialog from '@/views/AppModrinthProjectCreateDial
 import AppModrinthProjectBindDialog from '@/views/AppModrinthProjectBindDialog.vue'
 import AppModrinthVersionPublishDialog from '@/views/AppModrinthVersionPublishDialog.vue'
 import AppNotifier from '@/views/AppNotifier.vue'
-import AppShareInstanceDialog from '@/views/AppShareInstanceDialog.vue'
 import AppSideBarClassic from '@/views/AppSideBarClassic.vue'
 import AppSideBarNotch from '@/views/AppSideBarNotch.vue'
 import AppSystemBar from '@/views/AppSystemBar.vue'
@@ -115,7 +102,6 @@ import { useUserMenuControl } from '@/composables/userMenu'
 import { UserSkinRenderPaused } from '@/composables/userSkin'
 import AppSideBarGroupSettingDialog from '@/views/AppSideBarGroupSettingDialog.vue'
 import ModGroupSelectDialog from '@/views/ModGroupSelectDialog.vue'
-import AppGamepadPrompt from '@/views/AppGamepadPrompt.vue'
 import { useInstanceGroupDefaultColor } from '@/composables/instanceGroup'
 import { kMultiplayerEntry, useMultiplayerEntry } from '@/composables/multiplayerEntry'
 
@@ -144,8 +130,6 @@ const userProfileDialogShown = userMenu.shown
 const route = useRoute()
 provide(UserSkinRenderPaused, computed(() => !userProfileDialogShown.value && route.path !== '/me'))
 
-// Bind Ctrl/Cmd+Shift+C to open the command palette.
-useCommandPaletteHotkey()
 // Bind Ctrl/Cmd+Shift+A to open the agent chat panel.
 useAgentChatHotkey(developerMode)
 

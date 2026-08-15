@@ -35,16 +35,6 @@
         />
       </AppSideBarItem>
 
-      <AppSideBarItem
-        data-testid="nav-store"
-        v-shared-tooltip.right="() => t('store.name', 2)"
-        to="/store"
-        :aria-label="storeAriaLabel"
-      >
-        <v-icon class="sidebar-item__icon" :size="28">
-          store
-        </v-icon>
-      </AppSideBarItem>
     </div>
 
     <div class="sidebar__divider" />
@@ -161,17 +151,6 @@
         />
       </v-btn>
 
-      <v-btn
-        data-testid="nav-store"
-        v-shared-tooltip.bottom="t('store.name', 2)"
-        icon
-        to="/store"
-        :aria-label="storeAriaLabel"
-        class="non-moveable mr-1"
-      >
-        <v-icon :size="28">store</v-icon>
-      </v-btn>
-
       <v-divider vertical class="mx-2 h-6" />
     </div>
 
@@ -280,7 +259,6 @@ const { back } = useRouter()
 const navigationAriaLabel = 'Sidebar navigation'
 const backAriaLabel = computed(() => t('shared.back'))
 const myStuffAriaLabel = computed(() => t('myStuff'))
-const storeAriaLabel = computed(() => t('store.name', 2))
 const agentAriaLabel = computed(() => agentConfirmationPending.value ? `${t('agent.title')}: ${t('agent.confirmPending')}` : t('agent.title'))
 const agentTooltip = () => agentAriaLabel.value
 const multiplayerAriaLabel = computed(() => t('multiplayer.name'))

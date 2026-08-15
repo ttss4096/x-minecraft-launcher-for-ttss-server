@@ -1,0 +1,233 @@
+name: TTSS Daily Managed Launcher
+
+on:
+  schedule:
+    - cron: "20 22 * * *"
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/ttss-daily-managed-launcher.yml"
+      - "tools/ttss-ci/**"
+      - "xmcl-electron-app/**"
+      - "xmcl-runtime/managed/**"
+      - "xmcl-keystone-ui/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ttss-managed-launcher-release
+  cancel-in-progress: false
+
+env:
+  DOWNLOAD_ORIGIN: https://launcher.ttss4096.com/releases/latest
+  MCSM_HOST: 202.189.6.246
+  MCSM_PORT: "29616"
+  DOWNLOAD_HOST: 103.30.78.147
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.change.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: ttss4096/FoldCraftLauncher-for-ttss-server
+          path: fcl
+      - name: Install system tools
+        run: sudo apt-get update && sudo apt-get install -y jq openssh-client rsync unzip zip
+      - name: Export authoritative metadata
+        env:
+          MCSM_EXPORT_SSH_KEY: ${{ secrets.MCSM_EXPORT_SSH_KEY }}
+          MCSM_KNOWN_HOSTS: ${{ secrets.MCSM_KNOWN_HOSTS }}
+        run: |
+          install -m 0700 -d "$RUNNER_TEMP/ssh"
+          install -m 0600 /dev/null "$RUNNER_TEMP/ssh/export_key"
+          printf '%s\n' "$MCSM_EXPORT_SSH_KEY" > "$RUNNER_TEMP/ssh/export_key"
+          printf '%s\n' "$MCSM_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+          install -d export
+          set -o pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/export_key" -p "$MCSM_PORT" ttss-launcher-export@"$MCSM_HOST" metadata | tar -xf - -C export
+      - name: Compare canonical inputs
+        id: change
+        run: |
+          curl --fail --silent --show-error "$DOWNLOAD_ORIGIN/release-manifest.json" -o current-release.json
+          xmcl_head=$(git rev-parse HEAD)
+          fcl_head=$(git -C fcl rev-parse HEAD)
+          xmcl_tree=$(git ls-files -co --exclude-standard -z | sort -z | while IFS= read -r -d '' path; do [[ -f $path ]] && sha256sum "$path"; done | sha256sum | cut -d' ' -f1)
+          fcl_tree=$(cd fcl && git ls-files -co --exclude-standard -z | sort -z | while IFS= read -r -d '' path; do [[ -f $path ]] && sha256sum "$path"; done | sha256sum | cut -d' ' -f1)
+          host=$(sha256sum export/host/automodpack-content.json | cut -d' ' -f1)
+          hailwall=$(sha256sum export/config/hailwall.json | cut -d' ' -f1)
+          policy=$(sha256sum tools/ttss-ci/policy.json | cut -d' ' -f1)
+          if jq -e --arg xmcl_head "$xmcl_head" --arg xmcl_tree "$xmcl_tree" --arg fcl_head "$fcl_head" --arg fcl_tree "$fcl_tree" --arg host "$host" --arg hailwall "$hailwall" --arg policy "$policy" '.xmcl.gitHead == $xmcl_head and .xmcl.sourceTreeSha256 == $xmcl_tree and .fcl.gitHead == $fcl_head and .fcl.sourceTreeSha256 == $fcl_tree and .inputs.hostManifestSha256 == $host and .inputs.hailwallSha256 == $hailwall and .inputs.policySha256 == $policy' current-release.json >/dev/null; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'NO_CHANGE'
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Export and verify authoritative client host
+        if: steps.change.outputs.changed == 'true'
+        run: |
+          find export -depth -delete
+          install -d export
+          set -o pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/export_key" -p "$MCSM_PORT" ttss-launcher-export@"$MCSM_HOST" export | tar -xf - -C export
+          tools/ttss-ci/verify-export.sh export
+      - name: Build signed seed from previous release
+        if: steps.change.outputs.changed == 'true'
+        env:
+          SEED_SIGNING_KEY: ${{ secrets.SEED_SIGNING_KEY }}
+        run: |
+          version=$(jq -r '.xmcl.version' current-release.json)
+          archive="ttss-xmcl-$version-linux-x64.tar.gz"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/previous-xmcl.tar.gz" "$DOWNLOAD_ORIGIN/xmcl/$archive"
+          tar -xOf "$RUNNER_TEMP/previous-xmcl.tar.gz" './resources/ttss-client-seed/ttss-client-seed.zip' > "$RUNNER_TEMP/base-seed.zip"
+          tar -xOf "$RUNNER_TEMP/previous-xmcl.tar.gz" './resources/ttss-client-seed/ttss-client-seed.public.pem' > "$RUNNER_TEMP/previous-public.pem"
+          install -m 0600 /dev/null "$RUNNER_TEMP/seed-key.pem"
+          printf '%s\n' "$SEED_SIGNING_KEY" > "$RUNNER_TEMP/seed-key.pem"
+          openssl pkey -in "$RUNNER_TEMP/seed-key.pem" -pubout -out "$RUNNER_TEMP/seed-public.pem"
+          cmp "$RUNNER_TEMP/seed-public.pem" "$RUNNER_TEMP/previous-public.pem"
+          managed_path=$(jq -r '.jarPath' tools/ttss-ci/policy.json)
+          unzip -p "$RUNNER_TEMP/base-seed.zip" "$managed_path" > "$RUNNER_TEMP/automodpack-managed.jar"
+          printf '%s  %s\n' "$(jq -r '.jarSha256' tools/ttss-ci/policy.json)" "$RUNNER_TEMP/automodpack-managed.jar" | sha256sum -c -
+          install -d seed
+          BASE_SEED="$RUNNER_TEMP/base-seed.zip" EXPORT_ROOT="$PWD/export" AUTOMODPACK_JAR="$RUNNER_TEMP/automodpack-managed.jar" OUTPUT_DIR="$PWD/seed" SIGNING_KEY="$RUNNER_TEMP/seed-key.pem" PUBLIC_KEY="$RUNNER_TEMP/seed-public.pem" tools/ttss-ci/build-seed-from-export.sh
+          (cd seed && sha256sum -c SHA256SUMS)
+          openssl dgst -sha256 -verify seed/ttss-client-seed.public.pem -signature seed/ttss-client-seed.manifest.sig seed/ttss-client-seed.manifest.json
+          unzip -tq seed/ttss-client-seed.zip
+      - uses: actions/upload-artifact@v6
+        if: steps.change.outputs.changed == 'true'
+        with:
+          name: ttss-seed
+          path: seed/
+          retention-days: 1
+          compression-level: 0
+      - uses: actions/upload-artifact@v6
+        if: steps.change.outputs.changed == 'true'
+        with:
+          name: ttss-export-metadata
+          path: |
+            export/host/automodpack-content.json
+            export/config/hailwall.json
+          retention-days: 1
+
+  xmcl:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/download-artifact@v7
+        with:
+          name: ttss-seed
+          path: xmcl-electron-app/generated/ttss-client-seed
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm vitest run xmcl-runtime/managed/managedBootstrap.test.ts xmcl-runtime/managed/managedPolicy.test.ts xmcl-electron-app/main/utils/ttssRelease.test.ts
+      - run: pnpm check && pnpm lint
+      - run: pnpm --prefix=xmcl-keystone-ui build && pnpm --prefix=xmcl-electron-app build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+          NODE_ENV: production
+      - uses: actions/upload-artifact@v6
+        with:
+          name: xmcl-linux-x64
+          path: xmcl-electron-app/build/output/linux-unpacked/
+          retention-days: 1
+          compression-level: 1
+
+  fcl:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: ttss4096/FoldCraftLauncher-for-ttss-server
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - uses: actions/download-artifact@v7
+        with:
+          name: ttss-seed
+          path: FCL/src/main/assets/ttss-client-seed
+      - name: Build production APK
+        env:
+          FCL_KEYSTORE_B64: ${{ secrets.FCL_KEYSTORE_B64 }}
+          FCL_KEYSTORE_PASSWORD: ${{ secrets.FCL_KEYSTORE_PASSWORD }}
+          FCL_KEY_ALIAS: ${{ secrets.FCL_KEY_ALIAS }}
+          FCL_KEY_PASSWORD: ${{ secrets.FCL_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$FCL_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/fcl-production.p12"
+          chmod 0600 "$RUNNER_TEMP/fcl-production.p12"
+          export FCL_KEYSTORE_PATH="$RUNNER_TEMP/fcl-production.p12"
+          chmod +x gradlew
+          ./gradlew :FCL:testFordebugUnitTest :FCL:assembleRelease -Darch=all --no-daemon
+          apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          "$apksigner" verify --verbose --print-certs FCL/build/outputs/apk/release/*-all.apk | tee "$RUNNER_TEMP/apksigner.txt"
+          grep -Fi 'Signer #1 certificate SHA-256 digest: dc93cf9557cf990a52c0451a96de4342154b54cb9d593140d3a3234aed81bc40' "$RUNNER_TEMP/apksigner.txt"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: fcl-release
+          path: FCL/build/outputs/apk/release/*-all.apk
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    needs: [prepare, xmcl, fcl]
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: ttss4096/FoldCraftLauncher-for-ttss-server
+          path: fcl
+      - uses: actions/download-artifact@v7
+        with:
+          name: ttss-seed
+          path: seed
+      - uses: actions/download-artifact@v7
+        with:
+          name: ttss-export-metadata
+          path: export
+      - uses: actions/download-artifact@v7
+        with:
+          name: xmcl-linux-x64
+          path: xmcl-electron-app/build/output/linux-unpacked
+      - uses: actions/download-artifact@v7
+        with:
+          name: fcl-release
+          path: fcl/FCL/build/outputs/apk/release
+      - name: Package and verify release
+        run: |
+          XMCL_REPO="$PWD" FCL_REPO="$PWD/fcl" SEED_DIR="$PWD/seed" EXPORT_ROOT="$PWD/export" OUTPUT_DIR="$RUNNER_TEMP/release" POLICY_FILE="$PWD/tools/ttss-ci/policy.json" tools/ttss-ci/package-release.sh
+          tools/ttss-ci/verify-release.sh "$RUNNER_TEMP/release"
+      - name: Upload and atomically publish
+        env:
+          DOWNLOAD_DEPLOY_SSH_KEY: ${{ secrets.DOWNLOAD_DEPLOY_SSH_KEY }}
+          DOWNLOAD_KNOWN_HOSTS: ${{ secrets.DOWNLOAD_KNOWN_HOSTS }}
+        run: |
+          install -m 0700 -d "$RUNNER_TEMP/ssh"
+          install -m 0600 /dev/null "$RUNNER_TEMP/ssh/deploy_key"
+          printf '%s\n' "$DOWNLOAD_DEPLOY_SSH_KEY" > "$RUNNER_TEMP/ssh/deploy_key"
+          printf '%s\n' "$DOWNLOAD_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+          ssh_base=(ssh -o BatchMode=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/deploy_key" ttss-launcher-deploy@"$DOWNLOAD_HOST")
+          release_id=$(jq -r '.releaseId' "$RUNNER_TEMP/release/release-manifest.json")
+          "${ssh_base[@]}" "prepare $release_id"
+          set -o pipefail
+          tar -C "$RUNNER_TEMP/release" -cf - . | "${ssh_base[@]}" "upload $release_id"
+          "${ssh_base[@]}" "publish $release_id"
+          "${ssh_base[@]}" "status $release_id"

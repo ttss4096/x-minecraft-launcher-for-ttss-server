@@ -34,3 +34,4 @@ e2e/test-results/
 
 # local download-probe / benchmark artifacts (opt-in tests)
 /bench-out/
+xmcl-electron-app/generated/ttss-client-seed/

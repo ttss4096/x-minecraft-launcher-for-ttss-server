@@ -138,7 +138,6 @@ import { getCurseforgeProjectFilesModel } from '@/composables/curseforge'
 import { getDropFilePaths, kDropHandler } from '@/composables/dropHandler'
 import { useUpstreamData } from '@/composables/upstreamData'
 import { kInstance } from '@/composables/instance'
-import { kInstanceModsContext } from '@/composables/instanceMods'
 import { kInstanceResourcePacks } from '@/composables/instanceResourcePack'
 import { kInstanceSave } from '@/composables/instanceSave'
 import { kInstanceShaderPacks } from '@/composables/instanceShaderPack'
@@ -150,14 +149,13 @@ import { vRovingTabindex } from '@/directives/rovingTabindex'
 import { getCurseforgeFileGameVersions, getCursforgeFileModLoaders } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { useElementHover, useElementSize } from '@vueuse/core'
-import { InstanceModsServiceKey, InstanceResourcePacksServiceKey, InstanceSavesServiceKey, InstanceShaderPacksServiceKey, ModpackServiceKey } from '@xmcl/runtime-api'
+import { InstanceResourcePacksServiceKey, InstanceSavesServiceKey, InstanceShaderPacksServiceKey, ModpackServiceKey } from '@xmcl/runtime-api'
 import HomeScreenshotCard from './HomeScreenshotCard.vue'
 import HomeUpstreamHeader from './HomeUpstreamHeader.vue'
 import { useDialog } from '@/composables/dialog'
 import { InstanceInstallDialog } from '@/composables/instanceUpdate'
 import { useDateString } from '@/composables/date'
 
-const { enabledMods } = injection(kInstanceModsContext)
 const { enabled: enabledResourcePacks } = injection(kInstanceResourcePacks)
 const { shaderPack } = injection(kInstanceShaderPacks)
 
@@ -363,19 +361,6 @@ const underlineWidth = computed(() => {
   return tabAt(selected.value)?.offsetWidth || 0
 })
 
-const { install: installMod } = useService(InstanceModsServiceKey)
-function onDropMod(e: DragEvent) {
-  if (e.dataTransfer) {
-    const filePaths = getDropFilePaths(e.dataTransfer.files)
-    if (filePaths.length === 0) return
-    installMod({
-      path: path.value,
-      files: filePaths,
-    })
-    e.preventDefault()
-  }
-}
-
 const { install: installResourcePack } = useService(InstanceResourcePacksServiceKey)
 function onDropResourcePack(e: DragEvent) {
   if (e.dataTransfer) {
@@ -462,15 +447,6 @@ const items = computed(() => {
     }
     return [
       {
-        icon: 'extension',
-        tooltip: t('mod.name'),
-        text: dragover.value ? t('mod.dropHint') : t('mod.enabled', { count: enabledMods.value.length }),
-        highlighted: false,
-        install: () => push('/mods?source=remote'),
-        setting: () => push('/mods'),
-        drop: onDropMod
-      },
-      {
         icon: 'palette',
         tooltip: t('resourcepack.name'),
         text: dragover.value ? t('resourcepack.dropHint') : t('resourcepack.enable', { count: enabledResourcePacks.value.length }),
@@ -530,15 +506,7 @@ const items = computed(() => {
       }
     })
   } else {
-    return [{
-      icon: 'extension',
-      tooltip: t('mod.name'),
-      text: dragover.value ? t('mod.dropHint') : t('mod.enabled', { count: enabledMods.value.length }),
-      highlighted: false,
-      install: () => push('/mods?source=remote'),
-      setting: () => push('/mods'),
-      drop: onDropMod
-    }]
+    return []
   }
 })
 

@@ -14,6 +14,7 @@ import { readlinkSafe, isLinkTo, normalizeLinkTarget } from './utils/readLinkSaf
 import { ModrinthV2Client } from '@xmcl/modrinth'
 import { CurseforgeApiError, CurseforgeV1Client } from '@xmcl/curseforge'
 import { pathToFileURL } from 'url'
+import { assertManagedLauncherOperationAllowed } from '../managed/managedPolicy'
 
 export abstract class AbstractInstanceDomainService extends AbstractService {
   constructor(app: LauncherApp, protected domain: ResourceDomain) {
@@ -69,6 +70,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
    * first, then the folder is replaced by a link.
    */
   async linkShared(instancePath: string): Promise<void> {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.link-shared')
     const shared = await this.getSharedDirectory()
     const instanceDir = join(instancePath, this.domain)
     await ensureDir(shared)
@@ -113,6 +115,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
    * restoring an empty real directory.
    */
   async unlinkShared(instancePath: string): Promise<void> {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.unlink-shared')
     const shared = await this.getSharedDirectory()
     const instanceDir = join(instancePath, this.domain)
     if (!(await isLinkTo(instanceDir, shared))) {
@@ -123,6 +126,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
   }
 
   async install({ files, path }: UpdateInstanceResourcesOptions) {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.install')
     this.log(`Install ${files.length} to ${path}/${this.domain}`)
     const dir = join(path, this.domain)
     // Filter out undefined/null entries before fan-out — telemetry showed
@@ -189,6 +193,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
   }
 
   async uninstall({ files, path }: UpdateInstanceResourcesOptions) {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.uninstall')
     let hasError = false
     const domainPath = resolve(path, this.domain)
     const validFiles = files.filter((f): f is string => typeof f === 'string' && f.length > 0)
@@ -236,6 +241,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
   }
 
   async installFromMarket(options: InstallMarketOptionWithInstance): Promise<string[]> {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.install-from-market')
     const provider = await this.app.registry.get(kMarketProvider)
     const result = await provider.installInstanceFile({
       ...options,
@@ -246,6 +252,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
   }
 
   async resolveFromMarket(options: InstallMarketOptionWithInstance): Promise<InstanceFile[]> {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.resolve-from-market')
     const provider = await this.app.registry.get(kMarketProvider)
     return provider.resolveInstanceFiles({
       ...options,
@@ -255,6 +262,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
   }
 
   async showDirectory(path: string): Promise<void> {
+    if (this.domain === ResourceDomain.Mods) assertManagedLauncherOperationAllowed('mods.show-directory')
     await this.app.shell.openDirectory(join(path, this.domain))
   }
 

@@ -39,16 +39,6 @@
           />
         </AppSideBarNotchItem>
 
-        <!-- Store -->
-        <AppSideBarNotchItem
-          v-if="true"
-          data-testid="nav-store"
-          icon="store"
-          :icon-size="iconSize"
-          :tooltip="() => ({ text: t('store.name', 2), direction: tooltipDirection })"
-          to="/store"
-        />
-
         <div class="sidebar-notch__divider moveable" />
 
         <!-- Instance List (compact mode) -->
@@ -68,15 +58,6 @@
             :direction="tooltipDirection"
           />
         </template>
-        <AppSideBarNotchItem
-          data-testid="nav-add-instance"
-          icon="add"
-          :icon-size="iconSize"
-          :tooltip="() => t('instances.add')"
-          clickable
-          @click="showAddInstance()"
-        />
-
         <div class="sidebar-notch__spacer" />
 
         <!-- Agent -->
@@ -148,10 +129,8 @@
 <script lang="ts" setup>
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { useAgentChatEntry, useAgentChatStatus } from '@/composables/agentChat'
-import { useDialog } from '@/composables/dialog'
 import { useInstanceGroup } from '@/composables/instanceGroup'
 import { kMultiplayerEntry } from '@/composables/multiplayerEntry'
-import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
 import { kInstances } from '@/composables/instances'
 import { kSettingsState } from '@/composables/setting'
 import { useInjectSidebarSettings } from '@/composables/sidebarSettings'
@@ -169,7 +148,6 @@ const { state } = injection(kSettingsState)
 const { gameProfile } = injection(kUserContext)
 const { request: openMultiplayer } = injection(kMultiplayerEntry)
 const { position, align, scale, autoHide } = useInjectSidebarSettings()
-const { show: showAddInstance } = useDialog(AddInstanceDialogKey)
 const developerMode = computed(() => state.value?.developerMode ?? false)
 const { open: openAgent } = useAgentChatEntry()
 const agentChatStatus = useAgentChatStatus()

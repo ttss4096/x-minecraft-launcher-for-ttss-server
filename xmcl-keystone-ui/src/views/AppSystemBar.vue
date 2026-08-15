@@ -45,23 +45,7 @@
       :aria-label="gamepadLabel"
       can-hide-text
       class="gamepad-badge"
-      @click="openPalette"
     />
-
-    <AppSystemBarBadge
-      v-if="!noUser"
-      v-shared-tooltip.bottom="() => t('commandPalette.openHint', { shortcut: paletteShortcut })"
-      icon="search"
-      :text="t('commandPalette.open')"
-      :aria-label="t('commandPalette.openHint', { shortcut: paletteShortcut })"
-      can-hide-text
-      @click="openPalette"
-    >
-      <template #append>
-        <kbd class="palette-hotkey">{{ paletteShortcut }}</kbd>
-      </template>
-    </AppSystemBarBadge>
-
 
     <AppSystemBarBadge
       v-if="!noTask"
@@ -138,7 +122,6 @@ import { kTutorial } from '@/composables/tutorial'
 import AppSystemBarBadge from '@/components/AppSystemBarBadge.vue'
 import AppAudioPlayer from '@/components/AppAudioPlayer.vue'
 import { kTheme } from '@/composables/theme'
-import { useCommandPaletteVisible } from '@/composables/commandPalette'
 import { kNetworkStatus } from '@/composables/useNetworkStatus'
 import { vRovingTabindex } from '@/directives/rovingTabindex'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
@@ -178,17 +161,8 @@ const taskTooltip = computed(() => {
   return taskCountText.value
 })
 
-const paletteShown = useCommandPaletteVisible()
-const { isActive: gamepadActive, connected: gamepadConnected, name: gamepadName, labels: gamepadLabels } = useGamepad()
-const paletteShortcut = computed(() => {
-  if (gamepadActive.value) {
-    // Start / Menu button opens the palette in gamepad mode.
-    return gamepadLabels.value.menu
-  }
-  return navigator.platform.toLowerCase().includes('mac') ? '⌘⇧C' : 'Ctrl+Shift+C'
-})
+const { connected: gamepadConnected, name: gamepadName } = useGamepad()
 const gamepadLabel = computed(() => gamepadName.value || t('gamepad.connected'))
-const openPalette = () => { paletteShown.value = true }
 
 const router = useRouter()
 const onBack = () => {

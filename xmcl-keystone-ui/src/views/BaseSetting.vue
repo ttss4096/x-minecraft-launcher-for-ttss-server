@@ -72,28 +72,12 @@
             </template>
             <template v-else>
               <BaseSettingGeneral />
-              <BaseSettingVersions />
               <BaseSettingJava />
-              <BaseSettingSync />
               <BaseSettingLaunch />
-              <BaseSettingServer />
             </template>
-          </template>
-          <template v-else-if="targetQuery === 'modpack'">
-            <BaseSettingModpack />
-            <BaseSettingModpackFiles />
-          </template>
-          <template v-else-if="targetQuery === 'modrinth-project'">
-            <BaseSettingModrinthProject />
-          </template>
-          <template v-else-if="targetQuery === 'advanced'">
-            <BaseSettingAdvanced />
           </template>
           <template v-else-if="targetQuery === 'appearance'">
             <BaseSettingAppearance />
-          </template>
-          <template v-else-if="targetQuery === 'server' && !isBedrock">
-            <BaseSettingServerManage />
           </template>
           </div>
         </div>
@@ -127,55 +111,34 @@
         </v-btn>
       </template>
     </v-snackbar>
-    <BaseSettingModUpgradeDialog
-      @upgrade="onUpgradeMods"
-      @skip="onSkipUpgrade"
-    />
   </div>
 </template>
 
 <script lang=ts setup>
 import { useAutoSaveLoad } from '@/composables'
 import { useBeforeLeave } from '@/composables/beforeLeave'
-import { useDialog } from '@/composables/dialog'
 import { vibrateGamepad } from '@/composables/gamepad'
 import { kInstance } from '@/composables/instance'
-import { kInstanceModsContext } from '@/composables/instanceMods'
 import { kInstances } from '@/composables/instances'
-import { kModUpgrade } from '@/composables/modUpgrade'
 import { usePresence } from '@/composables/presence'
 import { useTutorial } from '@/composables/tutorial'
 import { injection } from '@/util/inject'
-import { useService } from '@/composables'
-import { InstanceModsServiceKey } from '@xmcl/runtime-api'
 import { InstanceEditInjectionKey, useInstanceEdit } from '../composables/instanceEdit'
 import BaseSettingGeneral from './BaseSettingGeneral.vue'
 import BaseSettingBedrockVersions from './BaseSettingBedrockVersions.vue'
 import BaseSettingJava from './BaseSettingJava.vue'
 import BaseSettingLaunch from './BaseSettingLaunch.vue'
-import BaseSettingSync from './BaseSettingSync.vue'
-import BaseSettingVersions from './BaseSettingVersions.vue'
 import { templateRef } from '@vueuse/core'
 import { kCompact } from '@/composables/scrollTop'
 import { useQuery } from '@/composables/query'
-import BaseSettingModpack from './BaseSettingModpack.vue'
-import BaseSettingServer from './BaseSettingServer.vue'
-import BaseSettingServerManage from './BaseSettingServerManage.vue'
-import BaseSettingAdvanced from './BaseSettingAdvanced.vue'
 import { useInstanceModpackMetadata } from '@/composables/instanceModpackMetadata'
-import BaseSettingModpackFiles from './BaseSettingModpackFiles.vue'
 import BaseSettingAppearance from './BaseSettingAppearance.vue'
-import BaseSettingModUpgradeDialog from './BaseSettingModUpgradeDialog.vue'
-import BaseSettingModrinthProject from './BaseSettingModrinthProject.vue'
-import { BaseSettingModUpgradeDialogKey } from '@/composables/instanceUpdate'
-import { useLatestBoundModrinthProject } from '@/composables/modrinthProjectBinding'
 
-const { isServer, name, instance, runtime } = injection(kInstance)
+const { name, instance, runtime } = injection(kInstance)
 const isBedrock = computed(() => instance.value.edition === 'bedrock')
 const { edit: _edit } = injection(kInstances)
 const edit = useInstanceEdit(instance, _edit)
 const { t } = useI18n()
-const { disable: disableMods } = useService(InstanceModsServiceKey)
 provide(InstanceEditInjectionKey, edit)
 useAutoSaveLoad(() => {}, edit.load)
 const { isModified } = edit
@@ -185,60 +148,13 @@ provide('root', root)
 const modpackMetadataContext = useInstanceModpackMetadata()
 provide('modpackMetadata', modpackMetadataContext)
 
-// Mod upgrade feature
-const { mods } = injection(kInstanceModsContext)
-const { refresh: checkUpgrade, upgrade, upgradePolicy, skipVersion, getModsWithoutUpgrade } = injection(kModUpgrade)
-const { show: showModUpgradeDialog } = useDialog(BaseSettingModUpgradeDialogKey)
-
-// Check if the instance is modded (has a mod loader)
-const isModdedInstance = computed(() => {
-  const r = runtime.value
-  return !!(r.forge || r.fabricLoader || r.quiltLoader || r.neoForged)
-})
-
-// Check if Minecraft version changed
-const isMinecraftVersionChanged = computed(() => {
-  return instance.value.runtime.minecraft !== edit.data.runtime.minecraft
-})
-
 async function onSave() {
-  // If Minecraft version changed and instance is modded with mods installed, show upgrade dialog
-  if (isMinecraftVersionChanged.value && isModdedInstance.value && mods.value.length > 0) {
-    showModUpgradeDialog({ minecraftVersion: edit.data.runtime.minecraft })
-  } else {
-    await edit.save()
-  }
-}
-
-async function onUpgradeMods() {
-  await edit.save()
-  // Trigger mod upgrade check with current runtime
-  const policy = upgradePolicy.value as 'modrinth' | 'curseforge' | 'modrinthOnly' | 'curseforgeOnly'
-  await checkUpgrade({ skipVersion: skipVersion.value, policy })
-  // Disable mods that don't have an available update for the new version
-  const modsToDisable = getModsWithoutUpgrade()
-  if (modsToDisable.length > 0) {
-    disableMods({ path: instance.value.path, files: modsToDisable })
-  }
-  upgrade()
-}
-
-async function onSkipUpgrade() {
   await edit.save()
 }
 
 const targetQuery = useQuery('target')
-const latestBoundModrinthProject = useLatestBoundModrinthProject()
-const boundModrinthProjectId = computed(() => modpackMetadataContext.modpackMetadata.modrinth.projectId || latestBoundModrinthProject.value?.id || '')
 const sections = computed(() => [
   { value: '', title: t('BaseSettingGeneral.title'), icon: 'settings_heart' },
-  ...(!isBedrock.value ? [
-    { value: 'modpack', title: t('modpack.name', 1), icon: 'folder_zip' },
-    ...(boundModrinthProjectId.value || targetQuery.value === 'modrinth-project' ? [
-      { value: 'modrinth-project', title: 'Modrinth', icon: 'xmcl:modrinth' },
-    ] : []),
-    { value: 'server', title: t('server.launch'), icon: 'dns' },
-  ] : []),
   { value: 'appearance', title: t('setting.appearance'), icon: 'invert_colors' },
 ])
 const activeSection = computed(() => targetQuery.value === 'general' ? '' : targetQuery.value || '')
@@ -254,10 +170,8 @@ function navigate(target: string) {
   }
 }
 
-watch([isBedrock, targetQuery], ([bedrock, target]) => {
-  if (target === 'remote-server') {
-    targetQuery.value = 'server'
-  } else if (bedrock && (target === 'modpack' || target === 'server')) {
+watch(targetQuery, (target) => {
+  if (target && target !== 'general' && target !== 'appearance') {
     targetQuery.value = 'general'
   }
 }, { immediate: true })

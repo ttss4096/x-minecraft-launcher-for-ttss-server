@@ -35,6 +35,8 @@ import { getMediaIconPath, resolveInstanceIcon, serializeInstanceIcon, toMediaIc
 import { requireObject, requireString } from '../util/object'
 import { getTracker } from '~/util/taskHelper'
 import { setTimeout } from 'timers/promises'
+import { isDeepStrictEqual } from 'util'
+import { areManagedInstanceEditFieldsAllowed, assertManagedLauncherOperationAllowed } from '../managed/managedPolicy'
 
 const INSTANCES_FOLDER = 'instances'
 
@@ -314,6 +316,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
   }
 
   async createInstance(payload: CreateInstanceOptions): Promise<string> {
+    assertManagedLauncherOperationAllowed('instance.create')
     requireObject(payload)
 
     if (!payload.name) {
@@ -449,6 +452,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
   }
 
   async duplicateInstance(path: string) {
+    assertManagedLauncherOperationAllowed('instance.duplicate')
     requireString(path)
 
     if (!this.state.all[path]) {
@@ -529,6 +533,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
    * @param path The instance path
    */
   async deleteInstance(path: string, deleteData = true) {
+    assertManagedLauncherOperationAllowed('instance.delete')
     await this.initialize()
     requireString(path)
 
@@ -647,6 +652,14 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       }
     }
 
+    const currentFields = state as unknown as Record<string, unknown>
+    const changedProtectedFields = Object.entries(options)
+      .filter(([key, value]) => !areManagedInstanceEditFieldsAllowed([key]) && !isDeepStrictEqual(value === null ? undefined : value, currentFields[key]))
+      .map(([key]) => key)
+    if (changedProtectedFields.length > 0) {
+      assertManagedLauncherOperationAllowed(`instance.edit-structure:${changedProtectedFields.join(',')}`)
+    }
+
     if (options.name) {
       if (this.isUnderManaged(instancePath)) {
         const newPath = join(dirname(instancePath), options.name)
@@ -693,6 +706,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
   }
 
   async acquireInstanceById(id: string): Promise<string> {
+    assertManagedLauncherOperationAllowed('instance.acquire')
     id = filenamify(id)
     this.log(`Acquire instance by id ${id}`)
     const instancePath = this.getPathUnder(id)

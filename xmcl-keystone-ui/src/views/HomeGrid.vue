@@ -28,13 +28,8 @@
         @container-resized="onResized"
         @resized="onResized"
       >
-        <HomeModCard
-          v-if="isType(item.i, CardType.Mod)"
-          :row-count="modRowCount"
-          :row="item.h - 4"
-        />
         <HomeResourcePacksCard
-          v-else-if="isType(item.i, CardType.ResourcePack)"
+          v-if="isType(item.i, CardType.ResourcePack)"
           :row-count="resourcePackRowCount"
           :row="item.h - 4"
         />
@@ -75,7 +70,6 @@ import { useLocalStorage, useResizeObserver } from '@vueuse/core'
 import { formatServerAddress, parseServerAddress } from '@xmcl/runtime-api'
 import { useDebounceFn } from '@vueuse/core'
 import { GridItem, GridLayout } from 'grid-layout-plus'
-import HomeModCard from './HomeModCard.vue'
 import HomeResourcePacksCard from './HomeResourcePacksCard.vue'
 import HomeSavesCard from './HomeSavesCard.vue'
 import HomeScreenshotCard from './HomeScreenshotCard.vue'
@@ -271,7 +265,6 @@ interface CardDescriptor {
 
 /** Card types that render exactly once per instance. */
 const SINGLETON_TYPES = [
-  CardType.Mod,
   CardType.ResourcePack,
   CardType.ShaderPack,
   CardType.Save,
@@ -458,7 +451,6 @@ const onResized = (i: string, newH: number, newW: number, newHPx: number, newWPx
 
 const getRowCount = (width: number) => (width ? Math.floor((width - 34) / 30) : 7)
 const resourcePackRowCount = computed(() => getRowCount(containerWidths[CardType.ResourcePack]))
-const modRowCount = computed(() => getRowCount(containerWidths[CardType.Mod]))
 const saveRowCount = computed(() => getRowCount(containerWidths[CardType.Save]))
 
 function hideCard(id: string) {

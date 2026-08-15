@@ -57,30 +57,6 @@
           </template>
         </v-list-item>
         <v-list-item
-          v-if="!isBedrock || bedrockStorage"
-          role="menuitem"
-          :title="t('instance.showInstance')"
-          @click="showInstanceFolder"
-        >
-          <template #prepend>
-            <v-icon size="20">
-              folder
-            </v-icon>
-          </template>
-        </v-list-item>
-        <v-list-item
-          v-if="!isBedrock"
-          role="menuitem"
-          :title="t('modpack.export')"
-          to="/base-setting?target=modpack"
-        >
-          <template #prepend>
-            <v-icon size="20">
-              share
-            </v-icon>
-          </template>
-        </v-list-item>
-        <v-list-item
           v-if="!isBedrock"
           role="menuitem"
           :title="t('server.export')"
@@ -106,20 +82,6 @@
         </v-list-item>
       </v-list>
     </v-menu>
-    <v-list-item
-      v-if="instance && !instance.upstream && !isBedrock"
-      role="menuitem"
-      :title="t('instance.installModpack')"
-      :disabled="installing"
-      @click="onClickInstallFromModpack()"
-    >
-      <template #prepend>
-        <v-icon size="20">
-          drive_folder_upload
-        </v-icon>
-      </template>
-    </v-list-item>
-
     <v-divider v-if="!isBedrock" role="presentation" class="my-1" />
 
     <v-list-item v-if="!isBedrock" role="menuitem" :title="text" @click="onStartLocalhost">
@@ -271,12 +233,11 @@ import { kInstanceSave } from '@/composables/instanceSave'
 import { kInstanceServerInfo } from '@/composables/instanceServerInfo'
 import { kServerStatusCache } from '@/composables/serverStatus'
 import { kUserContext } from '@/composables/user';
-import { InstanceInstallDialog } from '@/composables/instanceUpdate'
 import { useInstanceVersionServerInstall } from '@/composables/instanceVersionServerInstall'
 import { join } from '@/util/basename';
 import { getInstanceIcon } from '@/util/favicon';
 import { injection } from '@/util/inject'
-import { BaseServiceKey, BedrockServiceKey, BedrockStoragePaths, InstanceOptionsServiceKey, LaunchServiceKey, ModpackServiceKey, parseServerAddress, UserProfile, waitModpackFiles } from '@xmcl/runtime-api';
+import { BaseServiceKey, BedrockServiceKey, BedrockStoragePaths, InstanceOptionsServiceKey, LaunchServiceKey, parseServerAddress, UserProfile } from '@xmcl/runtime-api';
 import { isBedrockInstance } from '@xmcl/instance';
 
 const { t } = useI18n()
@@ -445,8 +406,6 @@ const onCreateShortcut = async () => {
 
 // Instance actions (settings / logs / folder / export / install)
 const { show: showLogDialog } = useDialog('log')
-const { show: showInstanceInstallDialog } = useDialog(InstanceInstallDialog)
-const { openModpack } = useService(ModpackServiceKey)
 
 const bedrockStorage = ref<BedrockStoragePaths>()
 watch(isBedrock, async (bedrock) => {
@@ -456,10 +415,6 @@ watch(isBedrock, async (bedrock) => {
   }
 }, { immediate: true })
 
-function showInstanceFolder() {
-  openDirectory(isBedrock.value ? bedrockStorage.value!.dataPath : path.value)
-}
-
 function showLogs() {
   if (isBedrock.value) {
     openDirectory(bedrockStorage.value!.logsPath)
@@ -468,36 +423,4 @@ function showLogs() {
   showLogDialog()
 }
 
-const installing = ref(false)
-function onClickInstallFromModpack() {
-  installing.value = true
-  windowController
-    .showOpenDialog({
-      properties: ['openFile'],
-      filters: [
-        {
-          name: 'Modpack',
-          extensions: ['zip', 'mrpack'],
-        },
-      ],
-    })
-    .then(async (result) => {
-      const file = result.canceled ? undefined : result.filePaths[0]
-      if (!file) {
-        return
-      }
-      const modpack = await openModpack(file)
-      const files = await waitModpackFiles(modpack)
-
-      showInstanceInstallDialog({
-        type: 'updates',
-        oldFiles: [],
-        files,
-        id: '',
-      })
-    })
-    .finally(() => {
-      installing.value = false
-    })
-}
 </script>

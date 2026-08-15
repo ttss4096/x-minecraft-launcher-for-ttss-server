@@ -6,9 +6,6 @@ import HomeActions from '@/views/HomeActions.vue'
 import HomeExtension from '@/views/HomeExtension.vue'
 import HomeLayout from '@/views/HomeLayout.vue'
 import Me from '@/views/Me.vue'
-import Mod from '@/views/Mod.vue'
-import ModActions from '@/views/ModActions.vue'
-import ModExtension from '@/views/ModExtension.vue'
 import Blueprint from '@/views/Blueprint.vue'
 import BlueprintActions from '@/views/BlueprintActions.vue'
 import BlueprintExtension from '@/views/BlueprintExtension.vue'
@@ -23,11 +20,6 @@ import Setting from '@/views/Setting.vue'
 import ShaderPack from '@/views/ShaderPack.vue'
 import ShaderPackActions from '@/views/ShaderPackActions.vue'
 import ShaderPackExtension from '@/views/ShaderPackExtension.vue'
-import Store from '@/views/Store.vue'
-import StoreEntry from '@/views/StoreEntry.vue'
-import StoreProjectCurseforge from '@/views/StoreProjectCurseforge.vue'
-import StoreProjectFeedTheBeast from '@/views/StoreProjectFeedTheBeast.vue'
-import StoreProjectModrinth from '@/views/StoreProjectModrinth.vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 export const router = createRouter({
@@ -51,14 +43,6 @@ export const router = createRouter({
             default: Save,
             extensions: SaveExtension,
             actions: SaveActions,
-          },
-        },
-        {
-          path: 'mods',
-          components: {
-            default: Mod,
-            extensions: ModExtension,
-            actions: ModActions,
           },
         },
         {
@@ -99,31 +83,8 @@ export const router = createRouter({
         },
       ],
     },
-    {
-      path: '/store',
-      component: Store,
-      children: [
-        {
-          path: '',
-          component: StoreEntry,
-        },
-        {
-          path: 'modrinth/:id',
-          component: StoreProjectModrinth,
-          props: (route) => ({ id: route.params.id }),
-        },
-        {
-          path: 'curseforge/:id',
-          component: StoreProjectCurseforge,
-          props: (route) => ({ id: Number(route.params.id) }),
-        },
-        {
-          path: 'ftb/:id',
-          component: StoreProjectFeedTheBeast,
-          props: (route) => ({ id: Number(route.params.id) }),
-        },
-      ],
-    },
+    { path: '/mods/:pathMatch(.*)*', redirect: '/' },
+    { path: '/store/:pathMatch(.*)*', redirect: '/' },
     {
       path: '/setting',
       component: Setting,
@@ -138,4 +99,3 @@ export const router = createRouter({
     },
   ],
 })
-

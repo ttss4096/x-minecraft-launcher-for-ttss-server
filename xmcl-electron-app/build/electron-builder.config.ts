@@ -5,7 +5,7 @@ import type { Configuration } from 'electron-builder'
 dotenv()
 
 export const config = {
-  productName: 'XMCL',
+  productName: '清汤闲水服务器启动器',
   appId: 'xmcl',
   directories: {
     output: 'build/output',
@@ -13,15 +13,14 @@ export const config = {
     app: '.',
   },
   protocols: {
-    name: 'XMCL',
+    name: '清汤闲水服务器启动器',
     schemes: ['xmcl'],
   },
   // assign publish for auto-updater
   // set this to your own repo!
   publish: [{
-    provider: 'github',
-    owner: 'voxelum',
-    repo: 'x-minecraft-launcher',
+    provider: 'generic',
+    url: 'https://launcher.ttss4096.com/releases/latest/xmcl/',
   }],
   files: [{
     from: 'dist',
@@ -36,10 +35,14 @@ export const config = {
     from: 'main/agent-documents',
     to: 'agent-documents',
     filter: ['**/*.md'],
+  }, {
+    from: 'generated/ttss-client-seed',
+    to: 'ttss-client-seed',
+    filter: ['ttss-client-seed.zip', 'ttss-client-seed.manifest.json', 'ttss-client-seed.manifest.sig', 'ttss-client-seed.public.pem', 'SHA256SUMS'],
   }],
-  artifactName: 'xmcl-${version}-${platform}-${arch}.${ext}',
+  artifactName: 'ttss-launcher-${version}-${platform}-${arch}.${ext}',
   appx: {
-    displayName: 'XMCL',
+    displayName: '清汤闲水服务器启动器',
     applicationId: 'xmcl',
     identityName: 'xmcl',
     backgroundColor: 'transparent',
@@ -48,7 +51,7 @@ export const config = {
     setBuildNumber: true,
   },
   dmg: {
-    artifactName: 'xmcl-${version}-${arch}.${ext}',
+    artifactName: 'ttss-launcher-${version}-${arch}.${ext}',
     contents: [
       {
         x: 410,
@@ -104,7 +107,7 @@ export const config = {
     },
     category: 'Game',
     icon: 'icons/dark.icns',
-    artifactName: 'xmcl-${version}-${arch}.${ext}',
+    artifactName: 'ttss-launcher-${version}-${arch}.${ext}',
     target: [
       { target: 'deb', arch: ['x64', 'arm64'] },
       { target: 'rpm', arch: ['x64', 'arm64'] },

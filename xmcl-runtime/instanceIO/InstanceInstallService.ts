@@ -52,6 +52,7 @@ import { linkInstanceFiles } from './utils/linkInstanceFiles'
 import { unzipInstanceFiles } from './utils/unzipInstanceFiles'
 import { resolveInstanceFiles } from './utils/resolveInstanceFiles'
 import { getTracker } from '~/util/taskHelper'
+import { assertManagedLauncherOperationAllowed } from '../managed/managedPolicy'
 
 /**
  * Provide the abilities to import/export instance from/to modpack
@@ -496,6 +497,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
   }
 
   async stageInstanceFiles(options: Extract<InstallInstanceOptions, { oldFiles: InstanceFile[] }>): Promise<InstanceInstallManifest> {
+    assertManagedLauncherOperationAllowed('instance.install.stage')
     const lock = this.mutex.of(LockKey.instanceManifest(options.path))
     return lock.runExclusive(async () => {
       const current = await this.getInstanceInstallManifest(options.path)
@@ -506,6 +508,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
   }
 
   async setInstanceInstallManifest(options: Extract<InstallInstanceOptions, { oldFiles: InstanceFile[] }>): Promise<InstanceInstallManifest | undefined> {
+    assertManagedLauncherOperationAllowed('instance.install.set-manifest')
     const lock = this.mutex.of(LockKey.instanceManifest(options.path))
     return lock.runExclusive(async () => {
       const manifestPath = join(options.path, '.install-manifest')
@@ -528,6 +531,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
   }
 
   async applyInstanceInstallManifest(path: string, id?: string): Promise<void> {
+    assertManagedLauncherOperationAllowed('instance.install.apply-manifest')
     const lock = this.mutex.of(LockKey.instanceManifest(path))
     await lock.runExclusive(async () => {
       const manifest = await this.getInstanceInstallManifest(path)
@@ -551,6 +555,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
     instancePath: string,
     overrides?: InstanceFile[],
   ): Promise<void | InstallFileError[]> {
+    assertManagedLauncherOperationAllowed('instance.install.resume')
     const lockFilePath = join(instancePath, 'instance-lock.json')
     const lockState = await readJson(lockFilePath)
       .then(InstanceLockSchema.parse)
@@ -714,6 +719,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
   }
 
   async installInstanceFiles(options: InstallInstanceOptions): Promise<void> {
+    assertManagedLauncherOperationAllowed('instance.install.files')
     const { path: instancePath, files, id } = options
 
     const timestamp = Date.now()

@@ -24,7 +24,6 @@ import { platform } from 'os'
 import { basename, dirname, join } from 'path'
 import { pipeline } from 'stream/promises'
 import { setTimeout } from 'timers/promises'
-import { extract as extractTar } from 'tar-stream'
 import { promisify } from 'util'
 import { createGunzip } from 'zlib'
 import { Logger, kGFW } from '~/infra'
@@ -32,6 +31,7 @@ import { kSettings } from '~/settings'
 import { checksum } from '~/util/fs'
 import ElectronLauncherApp from '../ElectronLauncherApp'
 import { ensureElevateExe } from './elevate'
+import { parseTtssRelease } from './ttssRelease'
 
 const kPatched = Symbol('Patched')
 
@@ -59,12 +59,12 @@ async function downloadAsarUpdate(
     platformFlag += '-ia32'
   }
   const file = `app-${version}-${platformFlag}.asar`
-  const github = `https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/${file}`
+  const releaseAsset = `https://launcher.ttss4096.com/releases/latest/xmcl/${file}`
 
   // Skip the download entirely if the pending file already matches the
   // published checksum.
   try {
-    const sha256Response = await app.fetch(github + '.sha256', { signal: options?.abortSignal })
+    const sha256Response = await app.fetch(releaseAsset + '.sha256', { signal: options?.abortSignal })
     const sha256 = sha256Response.ok ? (await sha256Response.text()).trim() : ''
     const actual = await checksum(destination, 'sha256').catch(() => '')
     if (sha256 && sha256 === actual) {
@@ -74,89 +74,7 @@ async function downloadAsarUpdate(
     // Ignore — fall through to download.
   }
 
-  const gfw = await app.registry.get(kGFW)
-  const errors: Error[] = []
-
-  const isAbort = (e: unknown) => e instanceof Error && e.name === 'AbortError'
-
-  // Inside the GFW, pull the asar from the npmmirror tarball of the
-  // per-platform `@xmcl/app-<platform>` package. npmmirror's per-file
-  // (`/files/`) endpoint is whitelist-only, but package tarballs are
-  // unrestricted, so we download the (small) tarball and extract `app.asar`.
-  if (gfw.inside) {
-    const tarball = `https://registry.npmmirror.com/@xmcl/app-${platformFlag}/-/app-${platformFlag}-${version}.tgz`
-    try {
-      await downloadAsarFromTarball(app, tarball, destination, options)
-      return
-    } catch (e) {
-      if (isAbort(e)) return
-      errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: tarball }))
-    }
-  }
-
-  // Fall back to the GitHub release asset (gzipped when available).
-  try {
-    await downloadGzAsar(app, github, destination, options)
-    return
-  } catch (e) {
-    if (isAbort(e)) return
-    errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: github }))
-  }
-
-  throw new AggregateError(
-    errors.flatMap((e) => (e instanceof AggregateError ? e.errors : e)),
-    'Fail to download asar update',
-  )
-}
-
-/**
- * Download an npm package tarball and extract its `package/app.asar` entry to
- * `destination`. Used for the npmmirror mirror path (see `downloadAsarUpdate`).
- */
-async function downloadAsarFromTarball(
-  app: ElectronLauncherApp,
-  url: string,
-  destination: string,
-  options?: {
-    abortSignal?: AbortSignal
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-  } & DownloadBaseOptions,
-): Promise<void> {
-  const tempTgz = destination + '.tgz'
-  await download({
-    url,
-    destination: tempTgz,
-    tracker: onDownloadSingle(options?.tracker, 'download-update.asar', { url }),
-    signal: options?.abortSignal,
-    ...getDownloadBaseOptions(options),
-  })
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tar = extractTar()
-      let found = false
-      tar.on('entry', (header, stream, next) => {
-        if (!found && (header.name === 'package/app.asar' || header.name.endsWith('/app.asar'))) {
-          found = true
-          const out = createWriteStream(destination)
-          out.on('error', reject)
-          out.on('finish', next)
-          stream.pipe(out)
-        } else {
-          stream.on('end', next)
-          stream.on('error', reject)
-          stream.resume()
-        }
-      })
-      tar.on('error', reject)
-      tar.on('finish', () => {
-        if (found) resolve()
-        else reject(new AnyError('UpdateAsarError', `No app.asar found in tarball ${url}`))
-      })
-      createReadStream(tempTgz).pipe(createGunzip()).pipe(tar)
-    })
-  } finally {
-    await unlinkAsync(tempTgz).catch(() => {})
-  }
+  await downloadGzAsar(app, releaseAsset, destination, options)
 }
 
 /**
@@ -196,7 +114,7 @@ async function downloadGzAsar(
 }
 
 async function hintUserDownload(): Promise<void> {
-  shell.openExternal('https://xmcl.app')
+  shell.openExternal('https://launcher.ttss4096.com/')
 }
 
 async function downloadAppInstaller(
@@ -320,24 +238,12 @@ export class ElectronUpdater implements LauncherAppUpdater {
   async #getUpdateFromSelfHost(): Promise<ReleaseInfo> {
     const app = this.app
     this.logger.log('Try get update from selfhost')
-    const { allowPrerelease, locale } = await app.registry.get(kSettings)
-    const queryString = `version=v${app.version}&prerelease=${allowPrerelease || false}`
-    const primary = await this.app
-      .fetch(`https://api.xmcl.app/latest?${queryString}`, {
-        headers: {
-          'Accept-Language': locale,
-        },
-      })
-      .catch(() => undefined)
-    // The Deno edge may return a regional 404. Fall back for any non-success
-    // response as well as a transport failure.
-    const response = primary?.ok
-      ? primary
-      : await this.app.fetch(`https://xmcl-core-api.azurewebsites.net/api/latest?${queryString}`, {
-        headers: {
-          'Accept-Language': locale,
-        },
-      })
+    const { locale } = await app.registry.get(kSettings)
+    const response = await this.app.fetch('https://launcher.ttss4096.com/releases/latest/xmcl/release.json', {
+      headers: {
+        'Accept-Language': locale,
+      },
+    })
     if (!response.ok) {
       throw new AnyError(
         'UpdateError',
@@ -346,8 +252,8 @@ export class ElectronUpdater implements LauncherAppUpdater {
         { status: response.status },
       )
     }
-    const result = (await response.json()) as any
-    const files = result.assets.map((a: any) => ({
+    const result = parseTtssRelease(await response.json())
+    const files = result.assets.map((a) => ({
       url: a.browser_download_url,
       name: a.name,
     })) as Array<{ url: string; name: string }>
@@ -384,26 +290,6 @@ export class ElectronUpdater implements LauncherAppUpdater {
     this.logger.log(`Got operation=${updateInfo.operation} update from selfhost`)
 
     return updateInfo
-  }
-
-  async #getUpdateFromAutoUpdater(): Promise<ReleaseInfo> {
-    const autoUpdater = updater.autoUpdater
-
-    this.logger.log(`Check update via ${autoUpdater.getFeedURL()}`)
-    const info = await autoUpdater.checkForUpdates()
-    if (!info) throw new Error('No update info found')
-
-    const files = info.updateInfo.files.map((f) => ({ name: basename(f.url), url: f.url }))
-    const release: ReleaseInfo = {
-      name: info.updateInfo.version,
-      body: info.updateInfo.releaseNotes as string,
-      date: info.updateInfo.releaseDate,
-      files,
-      newUpdate: !isSameVersion(info.updateInfo.version, this.app.version),
-      operation: ElectronUpdateOperation.AutoUpdater,
-    }
-
-    return release
   }
 
   private async quitAndInstallAsar() {
@@ -480,18 +366,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
   }
 
   async checkUpdateTask(): Promise<ReleaseInfo> {
-    if (this.app.platform.os === 'windows' || this.app.platform.os === 'osx') {
-      return this.#getUpdateFromSelfHost()
-    }
-    try {
-      return await this.#getUpdateFromAutoUpdater()
-    } catch (e) {
-      if (isSystemError(e) && e.code === 'ENOENT') {
-        return this.#getUpdateFromSelfHost()
-      }
-      this.logger.warn(e as Error)
-      throw e
-    }
+    return this.#getUpdateFromSelfHost()
   }
 
   async downloadUpdate(updateInfo: ReleaseInfo, options?: DownloadUpdateOptions): Promise<void> {

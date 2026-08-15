@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "automodpack-4.0.6-ttss-managed.2",
+  "upstreamCommit": "2ff957d03ffb4253fea0c0cbda4d0def4e9528d6",
+  "sourcePatchSha256": "79a3f39e47476dce293937ba3915bfbb45aac9a7195cc7e9f502deda323cb105",
+  "jarPath": "mods/automodpack-mc1.21.1-neoforge-4.0.6-ttss-managed.2.jar",
+  "jarSha256": "ce61da83dc706fad4bc62ccf3b332dbf35348bc085d93c8a0ee3bfcac1d57c5d",
+  "trust": {
+    "host": "202.189.6.246",
+    "port": 17891,
+    "certificateSha256": "3a99ab667abc949d9fb9404693fb7197080b5947495aaa4293e14bff3662a2a9",
+    "packId": "ttss-ciap-1.21.1",
+    "phase": "MANAGED_BY_AUTOMODPACK"
+  }
+}

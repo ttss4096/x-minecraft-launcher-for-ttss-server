@@ -15,9 +15,6 @@
     <div
       class="flex flex-col header-content"
       style="margin: auto"
-      :style="{
-        opacity: dragover ? 0 : '',
-      }"
     >
       <div
         class="header-primary-row align-center flex max-h-20 flex-1 flex-grow-0 items-baseline pl-6 pr-2 gap-1"
@@ -55,37 +52,11 @@
         </transition>
       </router-view>
     </div>
-    <div
-      v-if="dragover"
-      class="w-full h-full flex top-0 p-5"
-      style="position: absolute;"
-      @dragenter="overcount++"
-      @dragleave="overcount--"
-      @drop="overcount = 0; onDropModpack($event)"
-    >
-      <Hint
-        :text="t('modpack.dropHint')"
-        icon="save_alt"
-        class="rounded transition-all"
-        :class="{
-          dragover,
-          yellow: overcount > 0,
-          'darken-2': overcount > 0,
-        }"
-        :style="{
-          transform: overcount > 0 ? 'scale(1.0125)' : ''
-        }"
-      />
-    </div>
   </div>
 </template>
 
 <script lang=ts setup>
-import Hint from '@/components/Hint.vue'
-import { useDialog } from '@/composables/dialog'
-import { kDropHandler } from '@/composables/dropHandler'
 import { kInstance } from '@/composables/instance'
-import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
 import { kCompact } from '@/composables/scrollTop'
 import { kTheme } from '@/composables/theme'
 import { injection } from '@/util/inject'
@@ -117,22 +88,6 @@ const headerFontSize = computed(() => {
   return '2.425rem'
 })
 
-const { dragover } = injection(kDropHandler)
-const { show } = useDialog(AddInstanceDialogKey)
-const onDropModpack = (e: DragEvent) => {
-  e.preventDefault()
-  const file = e.dataTransfer?.files.item(0)
-  if (file) {
-    const filePath = windowController.getPathForFile(file)
-    if (!filePath) return
-    show({
-      format: 'modpack',
-      path: filePath,
-    })
-  }
-}
-
-const overcount = ref(0)
 </script>
 <style scoped>
 

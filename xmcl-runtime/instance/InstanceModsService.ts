@@ -8,6 +8,7 @@ import { ExposeServiceKey } from '~/service'
 import { LauncherApp } from '../app/LauncherApp'
 import { readdirIfPresent } from '../util/fs'
 import { AbstractInstanceDomainService } from './AbstractInstanceDomainService'
+import { assertManagedLauncherOperationAllowed } from '../managed/managedPolicy'
 
 /**
  * Provide the abilities to import mods and resource packs files to instance
@@ -21,6 +22,7 @@ export class InstanceModsService extends AbstractInstanceDomainService implement
   }
 
   async enable({ files: mods, path }: UpdateInstanceResourcesOptions): Promise<void> {
+    assertManagedLauncherOperationAllowed('mods.enable')
     this.log(`Enable ${mods.length} mods from ${path}`)
     const promises: Promise<void>[] = []
     const instanceModsDir = join(path, ResourceDomain.Mods)
@@ -38,6 +40,7 @@ export class InstanceModsService extends AbstractInstanceDomainService implement
   }
 
   async disable({ files: mods, path }: UpdateInstanceResourcesOptions) {
+    assertManagedLauncherOperationAllowed('mods.disable')
     this.log(`Disable ${mods.length} mods from ${path}`)
     const promises: Promise<void>[] = []
     const instanceModsDir = join(path, ResourceDomain.Mods)
@@ -56,6 +59,7 @@ export class InstanceModsService extends AbstractInstanceDomainService implement
   }
 
   async installToServerInstance(options: UpdateInstanceResourcesOptions): Promise<void> {
+    assertManagedLauncherOperationAllowed('mods.install-to-server')
     this.log(`Install ${options.files.length} mods to server instance at ${options.path}`)
     const modsDir = join(options.path, 'server', 'mods')
     await ensureDir(modsDir)

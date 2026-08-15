@@ -17,6 +17,7 @@ import { isReplayableFetchBody, splitFetchBody } from './fetchBody'
 import { getOzonePlatform } from './ozonePlatform'
 import { ElectronUpdater } from './utils/updater'
 import { getWindowsUtils } from './utils/windowsUtils'
+import { prepareManagedLauncher } from '../../xmcl-runtime/managed/managedBootstrap'
 
 class ElectronShell implements Shell {
   showItemInFolder = shell.showItemInFolder
@@ -338,6 +339,13 @@ export default class ElectronLauncherApp extends LauncherApp {
 
     app.whenReady().then(() => {
       Menu.setApplicationMenu(null)
+    })
+
+    const seedDirectory = process.env.TTSS_SEED_DIR || join(process.resourcesPath, 'ttss-client-seed')
+    await prepareManagedLauncher({
+      appDataPath: this.appDataPath,
+      seedDirectory,
+      gameDataPath: process.env.TTSS_MANAGED_GAME_ROOT,
     })
 
     await super.setup()
