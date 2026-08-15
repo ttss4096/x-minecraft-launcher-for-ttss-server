@@ -180,7 +180,7 @@ jobs:
           ./gradlew :FCL:testFordebugUnitTest :FCL:assembleRelease -Darch=all --no-daemon
           apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           "$apksigner" verify --verbose --print-certs FCL/build/outputs/apk/release/*-all.apk | tee "$RUNNER_TEMP/apksigner.txt"
-          grep -Fi 'V2 Signer: certificate SHA-256 digest: dc93cf9557cf990a52c0451a96de4342154b54cb9d593140d3a3234aed81bc40' "$RUNNER_TEMP/apksigner.txt"
+          grep -Fi 'certificate SHA-256 digest: dc93cf9557cf990a52c0451a96de4342154b54cb9d593140d3a3234aed81bc40' "$RUNNER_TEMP/apksigner.txt"
       - uses: actions/upload-artifact@v6
         with:
           name: fcl-release
