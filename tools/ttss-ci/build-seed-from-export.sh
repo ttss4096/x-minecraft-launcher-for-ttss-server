@@ -57,10 +57,14 @@ jq -n '{
 for required_path in \
   mods/automodpack-mc1.21.1-neoforge-4.0.6-ttss-managed.2.jar \
   mods/hailwall_1.0.3-versionlock.1_neoforge_1.21.1.jar \
-  mods/sablecollisiondamage-1.0.8.jar \
-  mods/ttss-exclusive-client-neoforge-1.21.1-1.0.0.jar; do
+  mods/sablecollisiondamage-1.0.8.jar; do
   [[ -f $staging/$required_path ]] || { printf 'required managed client file is missing: %s\n' "$required_path" >&2; exit 65; }
 done
+mapfile -t exclusive_clients < <(find "$staging/mods" -maxdepth 1 -type f -name 'ttss-exclusive-client-neoforge-1.21.1-*.jar' -printf '%f\n' | sort)
+if (( ${#exclusive_clients[@]} != 1 )); then
+  printf 'expected exactly one managed exclusive client mod, found %s\n' "${#exclusive_clients[@]}" >&2
+  exit 65
+fi
 if find "$staging" -type f -iname 'worldedit*.jar' -print -quit | grep -q .; then
   printf '%s\n' 'server-only WorldEdit was found in the client seed' >&2
   exit 65
