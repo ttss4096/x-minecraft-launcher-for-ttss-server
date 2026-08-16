@@ -229,8 +229,18 @@ jobs:
           printf '%s\n' "$DOWNLOAD_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
           ssh_base=(ssh -o BatchMode=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/deploy_key" ttss-launcher-deploy@"$DOWNLOAD_HOST")
           release_id=$(jq -r '.releaseId' "$RUNNER_TEMP/release/release-manifest.json")
+          cleanup_on_exit() {
+            exit_code=$?
+            if (( exit_code != 0 )); then
+              "${ssh_base[@]}" "cleanup $release_id" || true
+            fi
+            exit "$exit_code"
+          }
+          trap cleanup_on_exit EXIT
           "${ssh_base[@]}" "prepare $release_id"
           set -o pipefail
           tar -C "$RUNNER_TEMP/release" -cf - . | "${ssh_base[@]}" "upload $release_id"
           "${ssh_base[@]}" "publish $release_id"
+          "${ssh_base[@]}" "cleanup $release_id"
           "${ssh_base[@]}" "status $release_id"
+          trap - EXIT
