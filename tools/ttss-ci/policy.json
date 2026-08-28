@@ -6,7 +6,7 @@
   "jarPath": "mods/automodpack-mc1.21.1-neoforge-4.0.6-ttss-managed.2.jar",
   "jarSha256": "ce61da83dc706fad4bc62ccf3b332dbf35348bc085d93c8a0ee3bfcac1d57c5d",
   "trust": {
-    "host": "202.189.6.246",
+    "host": "202.189.21.64",
     "port": 17891,
     "certificateSha256": "3a99ab667abc949d9fb9404693fb7197080b5947495aaa4293e14bff3662a2a9",
     "packId": "ttss-ciap-1.21.1",

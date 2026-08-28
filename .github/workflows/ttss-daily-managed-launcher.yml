@@ -24,8 +24,8 @@ concurrency:
 
 env:
   DOWNLOAD_ORIGIN: https://launcher.ttss4096.com/releases/latest
-  MCSM_HOST: 202.189.6.246
-  MCSM_PORT: "29616"
+  MCSM_HOST: 202.189.21.64
+  MCSM_PORT: "36579"
   DOWNLOAD_HOST: 103.30.78.147
 
 jobs:
